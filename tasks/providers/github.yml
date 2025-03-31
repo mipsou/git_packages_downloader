@@ -36,7 +36,7 @@
   changed_when: false
 
 - name: Download package if not already present
-   ansible.builtin.get_url:
+  ansible.builtin.get_url:
     url: "{{ package_download_url }}"
     dest: "{{ item.repository.base_path }}/{{ item.repository.name }}/"
     mode: '0644'
