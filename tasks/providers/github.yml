@@ -18,7 +18,7 @@
   ansible.builtin.file:
     path: "{{ item.repository.base_path }}/{{ item.repository.name }}"
     state: directory
-    recurse: yes
+    recurse: true
     mode: "{{ item.repository.mode | default('0755') }}"
     owner: "{{ item.repository.owner | default(omit) }}"
     group: "{{ item.repository.group | default(omit) }}"
