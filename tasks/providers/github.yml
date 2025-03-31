@@ -1,7 +1,7 @@
 - name: Get the latest release for {{ item.name }}
   ansible.builtin.uri:
     url: "https://api.github.com/repos/{{ item.source.owner }}/{{ item.source.repo }}/releases/latest"
-    return_content: yes
+    return_content: true
   register: github_release
 
 - name: Extract download URL for {{ item.name }}
