@@ -47,7 +47,7 @@
     force: false
 
 - name: Update repository metadata if package is RPM
-  community.general.command:
+  ansible.builtin.command:
     cmd: createrepo --update "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.source.ext == "rpm"
   changed_when: false
