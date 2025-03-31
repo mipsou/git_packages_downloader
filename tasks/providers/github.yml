@@ -28,11 +28,11 @@
     target: "{{ item.repository.base_path }}/{{ item.repository.name }}(/.*)?"
     setype: httpd_sys_content_t
     state: present
-  when: item.repository.selinux_enable | default(false | bool)
+  when: item.repository.selinux_enable | default(false) | bool
 
 - name: Apply SELinux context recursively
   community.general.command: restorecon -Rv "{{ item.repository.base_path }}/{{ item.repository.name }}"
-  when: item.repository.selinux_enable | default(false | bool)
+  when: item.repository.selinux_enable | default(false) | bool
   changed_when: false
 
 - name: Download package if not already present
