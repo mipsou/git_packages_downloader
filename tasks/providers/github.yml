@@ -18,7 +18,7 @@
   ansible.builtin.file:
     path: "{{ item.repository.base_path }}/{{ item.repository.name }}"
     state: directory
-    recurse: true
+    recurse: yes
     mode: "{{ item.repository.mode | default('0755') }}"
     owner: "{{ item.repository.owner | default(omit) }}"
     group: "{{ item.repository.group | default(omit) }}"
@@ -31,7 +31,7 @@
   when: item.repository.selinux_enable | default(false) | bool
 
 - name: Apply SELinux context recursively
-  community.general.command:
+  ansible.builtin.command:
     argv:
       - restorecon
       - -Rv
@@ -47,7 +47,7 @@
     force: false
 
 - name: Update repository metadata if package is RPM
-  community.general.command:
+  ansible.builtin.command:
     cmd: createrepo --update "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.source.ext == "rpm"
   changed_when: false
