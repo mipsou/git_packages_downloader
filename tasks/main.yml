@@ -3,4 +3,4 @@
   loop: "{{ git_packages }}"
   loop_control:
     label: "{{ item.name }}"
-  when: item.source.enabled | default(true)
+  when: item.source.enabled | default(true) | bool
