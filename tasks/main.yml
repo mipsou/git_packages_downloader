@@ -1,5 +1,5 @@
 - name: Download and manage each Git package
-  include_tasks: "providers/{{ item.source.provider }}.yml"
+  ansible.builtin.include_tasks: "providers/{{ item.source.provider }}.yml"
   loop: "{{ git_packages }}"
   loop_control:
     label: "{{ item.name }}"
