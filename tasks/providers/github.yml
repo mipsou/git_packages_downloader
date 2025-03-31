@@ -18,7 +18,7 @@
   ansible.builtin.file:
     path: "{{ item.repository.base_path }}/{{ item.repository.name }}"
     state: directory
-    recurse: yes
+    recurse: true
     mode: "{{ item.repository.mode | default('0755') }}"
     owner: "{{ item.repository.owner | default(omit) }}"
     group: "{{ item.repository.group | default(omit) }}"
@@ -44,7 +44,7 @@
     url: "{{ package_download_url }}"
     dest: "{{ item.repository.base_path }}/{{ item.repository.name }}/"
     mode: '0644'
-    force: no
+    force: false
 
 - name: Update repository metadata if package is RPM
   community.general.command:
