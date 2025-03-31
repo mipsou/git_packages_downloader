@@ -1,11 +1,11 @@
 - name: Get the latest release for {{ item.name }}
-  uri:
+  ansible.builtin.uri:
     url: "https://api.github.com/repos/{{ item.source.owner }}/{{ item.source.repo }}/releases/latest"
     return_content: yes
   register: github_release
 
 - name: Extract download URL for {{ item.name }}
-  set_fact:
+  ansible.builtin.set_fact:
     package_download_url: >-
       {{
         github_release.json.assets
@@ -15,7 +15,7 @@
       }}[0]
 
 - name: Ensure repository directory exists
-  file:
+  ansible.builtin.file:
     path: "{{ item.repository.base_path }}/{{ item.repository.name }}"
     state: directory
     recurse: yes
@@ -24,23 +24,23 @@
     group: "{{ item.repository.group | default(omit) }}"
 
 - name: Set SELinux context for repository path (persistent)
-  sefcontext:
+  community.general.sefcontext:
     target: "{{ item.repository.base_path }}/{{ item.repository.name }}(/.*)?"
     setype: httpd_sys_content_t
     state: present
   when: item.repository.selinux_enable | default(false)
 
 - name: Apply SELinux context recursively
-  command: restorecon -Rv "{{ item.repository.base_path }}/{{ item.repository.name }}"
+  community.general.command: restorecon -Rv "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.repository.selinux_enable | default(false)
 
 - name: Download package if not already present
-  get_url:
+   ansible.builtin.get_url:
     url: "{{ package_download_url }}"
     dest: "{{ item.repository.base_path }}/{{ item.repository.name }}/"
     mode: '0644'
     force: no
 
 - name: Update repository metadata if package is RPM
-  command: createrepo --update "{{ item.repository.base_path }}/{{ item.repository.name }}"
+  community.general.command: createrepo --update "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.source.ext == "rpm"
