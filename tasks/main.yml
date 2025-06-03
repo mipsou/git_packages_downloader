@@ -5,7 +5,7 @@
     state: present
   become: true
 
-- name: 'Extraire git_packages depuis andros_mirror_git si défini'
+- name: 'Extraire git_packages depuis corp_mirror_git si défini'
   ansible.builtin.set_fact:
     git_packages: "{{ andros_mirror_git.git_packages }}"
   when: corp_mirror_git is defined and corp_mirror_git.git_packages is defined
