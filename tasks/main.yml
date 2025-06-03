@@ -7,7 +7,7 @@
 
 - name: 'Extraire git_packages depuis corp_mirror_git si défini'
   ansible.builtin.set_fact:
-    git_packages: "{{ andros_mirror_git.git_packages }}"
+    git_packages: "{{ corp_mirror_git.git_packages }}"
   when: corp_mirror_git is defined and corp_mirror_git.git_packages is defined
 
 - name: 'Download and manage each Git package'
