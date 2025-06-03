@@ -29,7 +29,7 @@
   loop_control:
     loop_var: git_package
 
-- name: 'Vérifier que le fichier temporaire n\'est pas vide'
+- name: 'Vérifier que le fichier temporaire n est pas vide'
   ansible.builtin.stat:
     path: "{{ tempfile_result.path }}"
   register: file_stat
