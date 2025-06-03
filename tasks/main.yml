@@ -15,8 +15,5 @@
   loop: "{{ git_packages | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
-  when:
-    - item.source is defined
-    #- item.source.enabled | default(true)
-    - item.source.provider is defined
+  when: item.source is defined and item.source.provider is defined
 
