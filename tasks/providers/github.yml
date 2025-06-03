@@ -175,7 +175,6 @@
   loop: "{{ git_packages }}"
   loop_control:
     loop_var: git_package
-  become: true
 
 - name: Supprimer le fichier temporaire
   ansible.builtin.file:
