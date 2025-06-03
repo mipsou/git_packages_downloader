@@ -1,4 +1,3 @@
----
 - name: Créer un répertoire temporaire
   ansible.builtin.tempfile:
     state: directory
