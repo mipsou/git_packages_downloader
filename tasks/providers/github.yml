@@ -161,6 +161,15 @@
     loop_var: git_package
   become: true
 
+
+- name: Vérifier si le répertoire repodata existe
+  ansible.builtin.stat:
+    path: "{{ git_package.repository.base_path }}/{{ git_package.repository.name }}/repodata"
+  register: repodata_stat
+  loop: "{{ git_packages }}"
+  loop_control:
+    loop_var: git_package
+
 - name: S'assurer que le répertoire repodata appartient au bon utilisateur
   ansible.builtin.file:
     path: "{{ git_package.repository.base_path }}/{{ git_package.repository.name }}/repodata"
@@ -169,7 +178,7 @@
     group: "{{ git_package.repository.group | default('apache') }}"
     recurse: true
   become: true
-  ignore_errors: true  # au cas où le dossier n'existe pas encore
+  when: repodata_stat.stat.exists
   loop: "{{ git_packages }}"
   loop_control:
     loop_var: git_package
