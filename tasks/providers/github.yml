@@ -136,7 +136,7 @@
 #     loop_var: filtered_asset
 
 - name: Set SELinux context for repository path (persistent)
-  ansible.builtin.sefcontext:
+  community.general.sefcontext:
     target: "{{ item.repository.base_path }}/{{ item.repository.name }}(/.*)?"
     setype: httpd_sys_content_t
     state: present
