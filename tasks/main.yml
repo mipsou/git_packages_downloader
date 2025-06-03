@@ -1,6 +1,6 @@
 ---
 - name: 'Installer le package python3-jmespath'
-  package:
+  ansible.builtin.package:
     name: python3-jmespath
     state: present
   become: true
@@ -11,7 +11,7 @@
   when: corp_mirror_git is defined and corp_mirror_git.git_packages is defined
 
 - name: 'Download and manage each Git package'
-  include_tasks: "providers/{{ item.source.provider }}.yml"
+  ansible.builtin.include_tasks: "providers/{{ item.source.provider }}.yml"
   loop: "{{ git_packages | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
