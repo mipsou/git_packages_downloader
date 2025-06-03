@@ -1,53 +1,189 @@
-- name: Get the latest release for {{ item.name }}
-  ansible.builtin.uri:
-    url: "https://api.github.com/repos/{{ item.source.owner }}/{{ item.source.repo }}/releases/latest"
-    return_content: true
-  register: github_release
+- name: Créer un répertoire temporaire
+  tempfile:
+    state: directory
+  register: temp_dir
 
-- name: Extract download URL for {{ item.name }}
-  ansible.builtin.set_fact:
-    package_download_url: >-
-      {{
-        github_release.json.assets
-        | selectattr('name', 'search', item.source.arch ~ '.*\\.' ~ item.source.ext ~ '$')
-        | map(attribute='browser_download_url')
-        | list
-      }}[0]
+- name: Créer un fichier temporaire avec extension .json
+  tempfile:
+    state: file
+    suffix: .json
+    prefix: "{{ temp_dir.path }}/"
+  register: tempfile_result
+
+- name: Vérifier que le fichier temporaire a été créé
+  assert:
+    that:
+      - tempfile_result.path is defined
+      - tempfile_result.state == "file"
+      - tempfile_result.path | regex_search('.*\.json$')
+    fail_msg: "Le fichier temporaire n'a pas été créé correctement."
+    success_msg: "Le fichier temporaire a été créé avec succès à : {{ tempfile_result.path }}"
+
+- name: Télécharger le dernier release de {{ item.source.repo }}
+  get_url:
+    url: "https://api.github.com/repos/{{ item.source.owner }}/{{ item.source.repo }}/releases/latest"
+    dest: "{{ tempfile_result.path }}"
+    mode: '0644'
+    force: true
+  loop: "{{ git_packages }}"
+  loop_control:
+    loop_var: git_package
+
+- name: Vérifier que le fichier temporaire n'est pas vide
+  stat:
+    path: "{{ tempfile_result.path }}"
+  register: file_stat
+
+- name: Échouer si le fichier temporaire est vide
+  fail:
+    msg: "Le fichier temporaire est vide."
+  when: file_stat.stat.size == 0
+
+- name: Lire le fichier temporaire
+  slurp:
+    src: "{{ tempfile_result.path }}"
+  register: slurped_file
+
+- name: Afficher le contenu du fichier temporaire
+  debug:
+    msg: "Contenu du fichier temporaire : {{ slurped_file.content | b64decode }}"
+
+- name: Décoder le contenu JSON
+  set_fact:
+    release_data: "{{ slurped_file.content | b64decode | from_json }}"
+
+- name: 'Construire dynamiquement la requete JMESPath'
+  set_fact:
+    rpm_query: >-
+      [?content_type == 'application/x-{{ git_package.source.ext }}' && contains(name, '{{ git_package.source.arch }}')].[name, browser_download_url]
+  loop: "{{ git_packages }}"
+  loop_control:
+    loop_var: git_package
+
+- name: Charger et filtrer les assets directement depuis le fichier JSON
+  set_fact:
+    filtered_assets: "{{ dict(release_data.assets | json_query(rpm_query)) }}"
+  loop: "{{ git_packages }}"
+  loop_control:
+    loop_var: git_package
+# json_query("[?content_type == 'application/x-{{ git_package.source.ext }}' && contains(name, '{{ git_package.source.arch }}')].[name, browser_download_url]")
+
+# json_query('[?contains(name, `{{ item.source.arch }}`) && contains(name, `{{ item.source.ext }}`)].{url: browser_download_url, name: name}')
+
+# - name: Afficher l'URL de téléchargement
+#   debug:
+#     msg: "L'URL de téléchargement est : filtered_assets {{ filtered_assets  }}"
+
+# - name: Ensure package_download_url is not empty
+#   assert:
+#     that:
+#       - item.url is defined
+#       - item.url != ""
+#     fail_msg: "The package download URL is empty for {{ item.source.repo }}"
+#   loop: "{{ filtered_assets }}"
+#   loop_control:
+#     loop_var: filtered_asset
+
 
 - name: Ensure repository directory exists
-  ansible.builtin.file:
+  file:
     path: "{{ item.repository.base_path }}/{{ item.repository.name }}"
     state: directory
-    recurse: true
+    recurse: yes
     mode: "{{ item.repository.mode | default('0755') }}"
-    owner: "{{ item.repository.owner | default(omit) }}"
-    group: "{{ item.repository.group | default(omit) }}"
+    owner: "{{ item.repository.owner | default('apache') }}"
+    group: "{{ item.repository.group | default('apache') }}"
+  become: true
+
+- name: 'Set current git_package'
+  set_fact:
+    current_git_package: "{{ item }}"
+  loop: "{{ git_packages }}"
+
+
+
+# - name: 'Télécharger les packages filtrés'
+#   get_url:
+#     url: "{{ item.value }}"
+#     dest: "{{ current_git_package.repository.base_path }}/{{ current_git_package.repository.name }}/{{ item.key }}"
+#     mode: '0644'
+#     force: false
+#   loop: "{{ filtered_assets | dict2items }}"
+#   loop_control:
+#     label: "{{ item.key }}"
+- name: Télécharger les packages filtrés
+  get_url:
+    url: "{{ asset.value }}"
+    dest: "{{ current_git_package.repository.base_path }}/{{ current_git_package.repository.name }}/{{ asset.key }}"
+    mode: '0644'
+    owner: "{{ current_git_package.repository.owner | default('apache') }}"
+    group: "{{ current_git_package.repository.group | default('apache') }}"
+    force: false
+  loop: "{{ filtered_assets | dict2items }}"
+  loop_control:
+    loop_var: asset
+    label: "{{ asset.key }}"
+  become: true
+
+
+# - name: 'Télécharger les packages filtrés'
+#   get_url:
+#     url: "{{ item.url }}"
+#     dest: "{{ item.repository.base_path }}/{{ item.repository.name }}/{{ item.name }}"
+#     mode: '0644'
+#   loop: "{{ filtered_assets }}"
+#   loop_control:
+#     loop_var: filtered_asset
 
 - name: Set SELinux context for repository path (persistent)
-  community.general.sefcontext:
+  sefcontext:
     target: "{{ item.repository.base_path }}/{{ item.repository.name }}(/.*)?"
     setype: httpd_sys_content_t
     state: present
-  when: item.repository.selinux_enable | default(false) | bool
+  when: item.repository.selinux_enable | default(false)
+  become: true
 
 - name: Apply SELinux context recursively
-  ansible.builtin.command:
-    argv:
-      - restorecon
-      - -Rv
-      - "{{ item.repository.base_path }}/{{ item.repository.name }}"
-  when: item.repository.selinux_enable | default(false) | bool
-  changed_when: false
+  command: restorecon -Rv "{{ item.repository.base_path }}/{{ item.repository.name }}"
+  when: item.repository.selinux_enable | default(false)
+  become: true
 
-- name: Download package if not already present
-  ansible.builtin.get_url:
-    url: "{{ package_download_url }}"
-    dest: "{{ item.repository.base_path }}/{{ item.repository.name }}/"
-    mode: '0644'
-    force: false
+# - name: Download package if not already present
+#   get_url:
+#     url: "{{ package_download_url }}"
+#     dest: "{{ item.repository.base_path }}/{{ item.repository.name }}/"
+#     mode: '0644'
+#     force: no
 
 - name: Update repository metadata if package is RPM
-  ansible.builtin.command:
-    cmd: createrepo --update "{{ item.repository.base_path }}/{{ item.repository.name }}"
+  command: createrepo --update "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.source.ext == "rpm"
-  changed_when: false
+  loop: "{{ git_packages }}"
+  loop_control:
+    loop_var: git_package
+  become: true
+
+- name: S'assurer que le répertoire repodata appartient au bon utilisateur
+  file:
+    path: "{{ git_package.repository.base_path }}/{{ git_package.repository.name }}/repodata"
+    state: directory
+    owner: "{{ git_package.repository.owner | default('apache') }}"
+    group: "{{ git_package.repository.group | default('apache') }}"
+    recurse: yes
+  become: true
+  ignore_errors: true  # au cas où le dossier n'existe pas encore
+  loop: "{{ git_packages }}"
+  loop_control:
+    loop_var: git_package
+  become: true
+
+- name: Supprimer le fichier temporaire
+  file:
+    path: "{{ tempfile_result.path }}"
+    state: absent
+  when: tempfile_result.path is defined
+
+- name: Supprimer le répertoire temporaire
+  file:
+    path: "{{ temp_dir.path }}"
+    state: absent
