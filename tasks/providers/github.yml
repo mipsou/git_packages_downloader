@@ -84,12 +84,11 @@
 #   loop_control:
 #     loop_var: filtered_asset
 
-
 - name: Ensure repository directory exists
   ansible.builtin.file:
     path: "{{ item.repository.base_path }}/{{ item.repository.name }}"
     state: directory
-    recurse: yes
+    recurse: true
     mode: "{{ item.repository.mode | default('0755') }}"
     owner: "{{ item.repository.owner | default('apache') }}"
     group: "{{ item.repository.group | default('apache') }}"
@@ -99,7 +98,6 @@
   ansible.builtin.set_fact:
     current_git_package: "{{ item }}"
   loop: "{{ git_packages }}"
-
 
 
 # - name: 'Télécharger les packages filtrés'
@@ -169,7 +167,7 @@
     state: directory
     owner: "{{ git_package.repository.owner | default('apache') }}"
     group: "{{ git_package.repository.group | default('apache') }}"
-    recurse: yes
+    recurse: true
   become: true
   ignore_errors: true  # au cas où le dossier n'existe pas encore
   loop: "{{ git_packages }}"
