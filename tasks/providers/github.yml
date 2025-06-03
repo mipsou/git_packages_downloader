@@ -1,16 +1,16 @@
-- name: Créer un répertoire temporaire
+- name: 'Créer un répertoire temporaire'
   ansible.builtin.tempfile:
     state: directory
   register: temp_dir
 
-- name: Créer un fichier temporaire avec extension .json
+- name: 'Créer un fichier temporaire avec extension .json'
   ansible.builtin.tempfile:
     state: file
     suffix: .json
     prefix: "{{ temp_dir.path }}/"
   register: tempfile_result
 
-- name: Vérifier que le fichier temporaire a été créé
+- name: 'Vérifier que le fichier temporaire a été créé'
   ansible.builtin.assert:
     that:
       - tempfile_result.path is defined
@@ -19,7 +19,7 @@
     fail_msg: "Le fichier temporaire n'a pas été créé correctement."
     success_msg: "Le fichier temporaire a été créé avec succès à : {{ tempfile_result.path }}"
 
-- name: Télécharger le dernier release de {{ item.source.repo }}
+- name: 'Télécharger le dernier release de {{ item.source.repo }}'
   ansible.builtin.get_url:
     url: "https://api.github.com/repos/{{ item.source.owner }}/{{ item.source.repo }}/releases/latest"
     dest: "{{ tempfile_result.path }}"
@@ -29,26 +29,26 @@
   loop_control:
     loop_var: git_package
 
-- name: Vérifier que le fichier temporaire n'est pas vide
+- name: 'Vérifier que le fichier temporaire n\'est pas vide'
   ansible.builtin.stat:
     path: "{{ tempfile_result.path }}"
   register: file_stat
 
-- name: Échouer si le fichier temporaire est vide
+- name: 'Échouer si le fichier temporaire est vide'
   ansible.builtin.fail:
     msg: "Le fichier temporaire est vide."
   when: file_stat.stat.size == 0
 
-- name: Lire le fichier temporaire
+- name: 'Lire le fichier temporaire'
   ansible.builtin.slurp:
     src: "{{ tempfile_result.path }}"
   register: slurped_file
 
-- name: Afficher le contenu du fichier temporaire
+- name: 'Afficher le contenu du fichier temporaire'
   ansible.builtin.debug:
     msg: "Contenu du fichier temporaire : {{ slurped_file.content | b64decode }}"
 
-- name: Décoder le contenu JSON
+- name: 'Décoder le contenu JSON'
   ansible.builtin.set_fact:
     release_data: "{{ slurped_file.content | b64decode | from_json }}"
 
@@ -60,7 +60,7 @@
   loop_control:
     loop_var: git_package
 
-- name: Charger et filtrer les assets directement depuis le fichier JSON
+- name: 'Charger et filtrer les assets directement depuis le fichier JSON'
   ansible.builtin.set_fact:
     filtered_assets: "{{ dict(release_data.assets | json_query(rpm_query)) }}"
   loop: "{{ git_packages }}"
@@ -68,13 +68,13 @@
     loop_var: git_package
 # json_query("[?content_type == 'application/x-{{ git_package.source.ext }}' && contains(name, '{{ git_package.source.arch }}')].[name, browser_download_url]")
 
-# json_query('[?contains(name, `{{ item.source.arch }}`) && contains(name, `{{ item.source.ext }}`)].{url: browser_download_url, name: name}')
+# json_query('[?contains(name, `{{ item.source.arch }}`) && contains(name, `{{ item.source.ext }}`)].{url: browser_download_url, name: 'name}')
 
-# - name: Afficher l'URL de téléchargement
+# - name: 'Afficher l'URL de téléchargement
 #   debug:
 #     msg: "L'URL de téléchargement est : filtered_assets {{ filtered_assets  }}"
 
-# - name: Ensure package_download_url is not empty
+# - name: 'Ensure package_download_url is not empty
 #   assert:
 #     that:
 #       - item.url is defined
@@ -84,7 +84,7 @@
 #   loop_control:
 #     loop_var: filtered_asset
 
-- name: Ensure repository directory exists
+- name: 'Ensure repository directory exists'
   ansible.builtin.file:
     path: "{{ item.repository.base_path }}/{{ item.repository.name }}"
     state: directory
@@ -109,7 +109,7 @@
 #   loop: "{{ filtered_assets | dict2items }}"
 #   loop_control:
 #     label: "{{ item.key }}"
-- name: Télécharger les packages filtrés
+- name: 'Télécharger les packages filtrés'
   ansible.builtin.get_url:
     url: "{{ asset.value }}"
     dest: "{{ current_git_package.repository.base_path }}/{{ current_git_package.repository.name }}/{{ asset.key }}"
@@ -133,7 +133,7 @@
 #   loop_control:
 #     loop_var: filtered_asset
 
-- name: Set SELinux context for repository path (persistent)
+- name: 'Set SELinux context for repository path (persistent)'
   community.general.sefcontext:
     target: "{{ item.repository.base_path }}/{{ item.repository.name }}(/.*)?"
     setype: httpd_sys_content_t
@@ -141,19 +141,19 @@
   when: item.repository.selinux_enable | default(false)
   become: true
 
-- name: Apply SELinux context recursively
+- name: 'Apply SELinux context recursively'
   ansible.builtin.command: restorecon -Rv "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.repository.selinux_enable | default(false)
   become: true
 
-# - name: Download package if not already present
+# - name: 'Download package if not already present
 #   get_url:
 #     url: "{{ package_download_url }}"
 #     dest: "{{ item.repository.base_path }}/{{ item.repository.name }}/"
 #     mode: '0644'
 #     force: no
 
-- name: Update repository metadata if package is RPM
+- name: 'Update repository metadata if package is RPM'
   ansible.builtin.command: createrepo --update "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.source.ext == "rpm"
   loop: "{{ git_packages }}"
@@ -162,7 +162,7 @@
   become: true
 
 
-- name: Vérifier si le répertoire repodata existe
+- name: 'Vérifier si le répertoire repodata existe'
   ansible.builtin.stat:
     path: "{{ git_package.repository.base_path }}/{{ git_package.repository.name }}/repodata"
   register: repodata_stat
@@ -170,7 +170,7 @@
   loop_control:
     loop_var: git_package
 
-- name: S'assurer que le répertoire repodata appartient au bon utilisateur
+- name: 'S\'assurer que le répertoire repodata appartient au bon utilisateur'
   ansible.builtin.file:
     path: "{{ git_package.repository.base_path }}/{{ git_package.repository.name }}/repodata"
     state: directory
@@ -183,13 +183,13 @@
   loop_control:
     loop_var: git_package
 
-- name: Supprimer le fichier temporaire
+- name: 'Supprimer le fichier temporaire'
   ansible.builtin.file:
     path: "{{ tempfile_result.path }}"
     state: absent
   when: tempfile_result.path is defined
 
-- name: Supprimer le répertoire temporaire
+- name: 'Supprimer le répertoire temporaire'
   ansible.builtin.file:
     path: "{{ temp_dir.path }}"
     state: absent
