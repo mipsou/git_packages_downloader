@@ -37,6 +37,7 @@ git_packages:
 ## Foreman Integration
 
 Use Ansible Parameters in Foreman to override `git_packages`. Assign this role to a host or host group.
+declare var array corp_mirror_git in theforeman with the full git_packages and contant
 
 ## Design Philosophy
 
