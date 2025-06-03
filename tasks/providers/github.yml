@@ -1,17 +1,17 @@
 - name: Créer un répertoire temporaire
-  tempfile:
+  ansible.builtin.tempfile:
     state: directory
   register: temp_dir
 
 - name: Créer un fichier temporaire avec extension .json
-  tempfile:
+  ansible.builtin.tempfile:
     state: file
     suffix: .json
     prefix: "{{ temp_dir.path }}/"
   register: tempfile_result
 
 - name: Vérifier que le fichier temporaire a été créé
-  assert:
+  ansible.builtin.assert:
     that:
       - tempfile_result.path is defined
       - tempfile_result.state == "file"
@@ -20,7 +20,7 @@
     success_msg: "Le fichier temporaire a été créé avec succès à : {{ tempfile_result.path }}"
 
 - name: Télécharger le dernier release de {{ item.source.repo }}
-  get_url:
+  ansible.builtin.get_url:
     url: "https://api.github.com/repos/{{ item.source.owner }}/{{ item.source.repo }}/releases/latest"
     dest: "{{ tempfile_result.path }}"
     mode: '0644'
@@ -30,30 +30,30 @@
     loop_var: git_package
 
 - name: Vérifier que le fichier temporaire n'est pas vide
-  stat:
+  ansible.builtin.stat:
     path: "{{ tempfile_result.path }}"
   register: file_stat
 
 - name: Échouer si le fichier temporaire est vide
-  fail:
+  ansible.builtin.fail:
     msg: "Le fichier temporaire est vide."
   when: file_stat.stat.size == 0
 
 - name: Lire le fichier temporaire
-  slurp:
+  ansible.builtin.slurp:
     src: "{{ tempfile_result.path }}"
   register: slurped_file
 
 - name: Afficher le contenu du fichier temporaire
-  debug:
+  ansible.builtin.debug:
     msg: "Contenu du fichier temporaire : {{ slurped_file.content | b64decode }}"
 
 - name: Décoder le contenu JSON
-  set_fact:
+  ansible.builtin.set_fact:
     release_data: "{{ slurped_file.content | b64decode | from_json }}"
 
 - name: 'Construire dynamiquement la requete JMESPath'
-  set_fact:
+  ansible.builtin.set_fact:
     rpm_query: >-
       [?content_type == 'application/x-{{ git_package.source.ext }}' && contains(name, '{{ git_package.source.arch }}')].[name, browser_download_url]
   loop: "{{ git_packages }}"
@@ -61,7 +61,7 @@
     loop_var: git_package
 
 - name: Charger et filtrer les assets directement depuis le fichier JSON
-  set_fact:
+  ansible.builtin.set_fact:
     filtered_assets: "{{ dict(release_data.assets | json_query(rpm_query)) }}"
   loop: "{{ git_packages }}"
   loop_control:
@@ -86,7 +86,7 @@
 
 
 - name: Ensure repository directory exists
-  file:
+  ansible.builtin.file:
     path: "{{ item.repository.base_path }}/{{ item.repository.name }}"
     state: directory
     recurse: yes
@@ -96,7 +96,7 @@
   become: true
 
 - name: 'Set current git_package'
-  set_fact:
+  ansible.builtin.set_fact:
     current_git_package: "{{ item }}"
   loop: "{{ git_packages }}"
 
@@ -112,7 +112,7 @@
 #   loop_control:
 #     label: "{{ item.key }}"
 - name: Télécharger les packages filtrés
-  get_url:
+  ansible.builtin.get_url:
     url: "{{ asset.value }}"
     dest: "{{ current_git_package.repository.base_path }}/{{ current_git_package.repository.name }}/{{ asset.key }}"
     mode: '0644'
@@ -136,7 +136,7 @@
 #     loop_var: filtered_asset
 
 - name: Set SELinux context for repository path (persistent)
-  sefcontext:
+  ansible.builtin.sefcontext:
     target: "{{ item.repository.base_path }}/{{ item.repository.name }}(/.*)?"
     setype: httpd_sys_content_t
     state: present
@@ -144,7 +144,7 @@
   become: true
 
 - name: Apply SELinux context recursively
-  command: restorecon -Rv "{{ item.repository.base_path }}/{{ item.repository.name }}"
+  ansible.builtin.command: restorecon -Rv "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.repository.selinux_enable | default(false)
   become: true
 
@@ -156,7 +156,7 @@
 #     force: no
 
 - name: Update repository metadata if package is RPM
-  command: createrepo --update "{{ item.repository.base_path }}/{{ item.repository.name }}"
+  ansible.builtin.command: createrepo --update "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.source.ext == "rpm"
   loop: "{{ git_packages }}"
   loop_control:
@@ -164,7 +164,7 @@
   become: true
 
 - name: S'assurer que le répertoire repodata appartient au bon utilisateur
-  file:
+  ansible.builtin.file:
     path: "{{ git_package.repository.base_path }}/{{ git_package.repository.name }}/repodata"
     state: directory
     owner: "{{ git_package.repository.owner | default('apache') }}"
@@ -178,12 +178,12 @@
   become: true
 
 - name: Supprimer le fichier temporaire
-  file:
+  ansible.builtin.file:
     path: "{{ tempfile_result.path }}"
     state: absent
   when: tempfile_result.path is defined
 
 - name: Supprimer le répertoire temporaire
-  file:
+  ansible.builtin.file:
     path: "{{ temp_dir.path }}"
     state: absent
