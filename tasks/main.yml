@@ -1,6 +1,18 @@
-- name: Download and manage each Git package
-  ansible.builtin.include_tasks: "providers/{{ item.source.provider }}.yml"
-  loop: "{{ git_packages }}"
+---
+- name: 'Installer le package python3-jmespath'
+  package:
+    name: python3-jmespath
+    state: present
+  become: true
+
+- name: 'Extraire git_packages depuis andros_mirror_git si défini'
+  ansible.builtin.set_fact:
+    git_packages: "{{ andros_mirror_git.git_packages }}"
+  when: corp_mirror_git is defined and corp_mirror_git.git_packages is defined
+
+- name: 'Download and manage each Git package'
+  include_tasks: "providers/{{ item.source.provider }}.yml"
+  loop: "{{ git_packages | default([]) }}"
   loop_control:
     label: "{{ item.name }}"
-  when: item.source.enabled | default(true) | bool
+  when: item.source.enabled | default(true)
