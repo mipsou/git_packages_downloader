@@ -16,4 +16,3 @@
   loop_control:
     label: "{{ item.name }}"
   when: item.source is defined and item.source.provider is defined
-
