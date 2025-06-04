@@ -1,0 +1,50 @@
+{
+    "name": "Ansible Creator EE",
+    // Utiliser directement une image pré-construite
+    "image": "quay.io/ansible/creator-ee:latest",
+
+    // Définir le répertoire de travail dans le conteneur
+    "workspaceFolder": "/projects",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/projects,type=bind,consistency=cached",
+
+    "runArgs": [
+        "--cap-add=SYS_PTRACE",
+        "--security-opt", "seccomp=unconfined"
+        // Les EE Ansible peuvent nécessiter des arguments supplémentaires pour les volumes
+        // ou les variables d'environnement selon l'utilisation.
+    ],
+
+    // Monter votre répertoire .ssh local
+    "mounts": [
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/ansible/.ssh,type=bind,consistency=cached"
+    ],
+
+    // L'utilisateur par défaut dans creator-ee est 'ansible' (UID 1000 généralement)
+    "remoteUser": "ansible",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "redhat.ansible",
+                "ms-python.python", // Python est inclus dans l'EE
+                "redhat.vscode-yaml",
+                "eamodio.gitlens",
+                "bierner.markdown-mermaid"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash"
+                // L'extension Ansible devrait trouver le python de l'EE automatiquement.
+                // Si ce n'est pas le cas, on pourra spécifier le chemin (souvent /usr/bin/python3)
+                // "ansible.python.interpreterPath": "/usr/bin/python3"
+            }
+        }
+    },
+
+    // Commande à exécuter après la création du conteneur
+    // ansible-galaxy est déjà dans l'EE.
+    // S'assurer que les permissions sont correctes pour l'utilisateur 'ansible'
+    "postCreateCommand": "if [ -f requirements.yml ]; then sudo chown ansible:ansible -R /projects; ansible-galaxy install -r requirements.yml; fi",
+
+    // Pour s'assurer que le conteneur reste en vie (l'EE devrait le faire par défaut)
+    "overrideCommand": false
+}
