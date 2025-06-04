@@ -145,6 +145,7 @@
 - name: 'Apply SELinux context recursively'
   ansible.builtin.command: restorecon -Rv "{{ item.repository.base_path }}/{{ item.repository.name }}"
   when: item.repository.selinux_enable | default(false)
+  changed_when: false # restorecon is idempotent, assume no change for linting
   become: true
 
 # - name: 'Download package if not already present
@@ -160,16 +161,17 @@
   loop: "{{ git_packages }}"
   loop_control:
     loop_var: git_package
+  changed_when: true # Assume this task always intends to make a change for simplicity
   become: true
 
 
-#- name: 'Vérifier si le répertoire repodata existe'
-#  ansible.builtin.stat:
-#    path: "{{ git_package.repository.base_path }}/{{ git_package.repository.name }}/repodata"
-#  register: repodata_stat
-#  loop: "{{ git_packages }}"
-#  loop_control:
-#    loop_var: git_package
+# - name: 'Vérifier si le répertoire repodata existe'
+#  ansible.builtin.stat:
+#    path: "{{ git_package.repository.base_path }}/{{ git_package.repository.name }}/repodata"
+#  register: repodata_stat
+#  loop: "{{ git_packages }}"
+#  loop_control:
+#    loop_var: git_package
 
 - name: 'S assurer que le répertoire repodata appartient au bon utilisateur'
   ansible.builtin.file:
