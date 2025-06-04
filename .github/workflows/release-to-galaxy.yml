@@ -1,0 +1,28 @@
+name: Release Helper for Ansible Galaxy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Se déclenche sur les tags de version comme v1.0.0, v0.1.2, etc.
+
+jobs:
+  tagged_release:
+    name: Handle Tagged Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Nécessaire pour créer une GitHub Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release from Tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token fourni par GitHub Actions
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          echo "Création d'une Release GitHub pour le tag: $TAG_NAME"
+          gh release create "$TAG_NAME" --generate-notes --title "$TAG_NAME"
+          echo "Release GitHub créée."
+          echo "Ansible Galaxy devrait maintenant détecter ce nouveau tag pour le rôle mipsou.git_packages_downloader."
+          echo "Vérifiez votre page 'My Content' sur https://galaxy.ansible.com/ui/my-content/ pour confirmer l'importation."
