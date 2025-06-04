@@ -11,7 +11,7 @@ Ce rôle Ansible télécharge et met en miroir les derniers artefacts de publica
 ## ✨ Fonctionnalités
 
 - Télécharge dynamiquement les releases `.rpm` (ou tout autre format) depuis GitHub 📦
-- Filtre par architecture et extension (par exemple, `amd64`, `aarch64`)  фильтр
+- Filtre par architecture et extension (par exemple, `amd64`, `aarch64`) 🔩
 - Idempotent et compatible avec Foreman ✅
 - Prend en charge la création de dépôts locaux et les contextes SELinux 🛡️
 
@@ -49,15 +49,15 @@ La variable `git_packages` est une liste de dictionnaires, où chaque dictionnai
 
 ```yaml
 git_packages:
-  - name: mercure_rpm # Nom descriptif du paquet
+  - name: acme_package # Exemple de nom de paquet
     source:
       provider: github
-      owner: dunglas
-      repo: mercure
+      owner: acme_corp # Exemple de propriétaire
+      repo: acme_app # Exemple de dépôt
       arch: amd64 # Peut aussi être x86_64, etc.
       ext: rpm
     repository:
-      name: mercure # Ceci créera /var/www/html/public/repos/mercure
+      name: acme_repo # Ceci créera /var/www/html/public/repos/acme_repo
       base_path: /var/www/html/public/repos # Chemin commun accessible via le web
       mode: "0755"
       owner: apache # Ou nginx, www-data, etc., selon l'utilisateur de votre serveur web
@@ -97,15 +97,15 @@ La variable `corp_mirror_git` doit être un dictionnaire contenant une seule cl�
 ```yaml
 corp_mirror_git:
   git_packages:
-    - name: mercure_rpm_from_corp_mirror # Nom descriptif
+    - name: acme_package_from_corp_mirror # Exemple de nom
       source:
         provider: github
-        owner: dunglas
-        repo: mercure
+        owner: acme_corp
+        repo: acme_app
         arch: amd64
         ext: rpm
-      repository: # Assurer que cette clé est présente et correctement indentée
-        name: mercure_corp
+      repository:
+        name: acme_corp_repo
         base_path: /var/www/html/public/repos/corporate # Chemin accessible via le web
         owner: apache # Ou nginx, www-data, etc.
         group: apache # Ou nginx, www-data, etc.

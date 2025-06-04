@@ -49,15 +49,15 @@ The `git_packages` variable is a list of dictionaries, where each dictionary def
 
 ```yaml
 git_packages:
-  - name: mercure_rpm # Descriptive package name
+  - name: acme_package # Example package name
     source:
       provider: github
-      owner: dunglas
-      repo: mercure
+      owner: acme_corp # Example owner
+      repo: acme_app # Example repository
       arch: amd64 # Can also be x86_64, etc.
       ext: rpm
     repository:
-      name: mercure # This will create /var/www/html/public/repos/mercure
+      name: acme_repo # This will create /var/www/html/public/repos/acme_repo
       base_path: /var/www/html/public/repos # Common web-accessible path
       mode: "0755"
       owner: apache # Or nginx, www-data, etc., depending on your web server user
@@ -97,15 +97,15 @@ The `corp_mirror_git` variable should be a dictionary containing a single key, `
 ```yaml
 corp_mirror_git:
   git_packages:
-    - name: mercure_rpm_from_corp_mirror # Descriptive name
+    - name: acme_package_from_corp_mirror # Example name
       source:
         provider: github
-        owner: dunglas
-        repo: mercure
+        owner: acme_corp
+        repo: acme_app
         arch: amd64
         ext: rpm
-      repository: # Ensure this key is present and correctly indented
-        name: mercure_corp
+      repository:
+        name: acme_corp_repo
         base_path: /var/www/html/public/repos/corporate # Web-accessible path
         owner: apache # Or nginx, www-data, etc.
         group: apache # Or nginx, www-data, etc.
